@@ -5,8 +5,8 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 # Змінні
-API_TOKEN = os.getenv("8703162686:AAG_uYVO1qHTsm4EhB1m5MDEgeRfUyesgac")
-WEB_APP_URL = os.getenv("https://atlet13.github.io/elite-app/")
+API_TOKEN = "8703162686:AAG_uYVO1qHTsm4EhB1m5MDEgeRfUyesgac"
+WEB_APP_URL = "https://atlet13.github.io/elite-app/"
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()

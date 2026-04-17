@@ -1,5 +1,6 @@
 import asyncio
 import os
+import logging
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -8,24 +9,32 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from motor.motor_asyncio import AsyncIOMotorClient
 
+# Логування для відстеження помилок у Render
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # --- КОНФІГУРАЦІЯ ---
 API_TOKEN = "8703162686:AAHmab2F_7W54X0g30wv5MAbgtRYdlpynAg"
 ADMIN_ID = 8561782680 
 SUPPORT_USERNAME = "elitegirls_support"
 WEB_APP_URL = "https://atlet13.github.io/elite-app/"
-START_PHOTO_URL = "https://i.ibb.co/cS1xSG0w/image.jpg" 
 CARD_NUMBER = "4400005552741933"
 
-# ПІДКЛЮЧЕННЯ ДО MONGODB
-MONGO_URL = "mongodb+srv://admin:Artyr2626@cluster0.tp0nxdu.mongodb.net/?retryWrites=true&w=majority"
-cluster = AsyncIOMotorClient(MONGO_URL)
-db = cluster["elite_db"]
-users_col = db["users"] # Колекція для збереження анкет та статусів
+# ПІДКЛЮЧЕННЯ ДО MONGODB (Змініть пароль EliteApp2026 на свій!)
+MONGO_URL = "mongodb+srv://admin:Artyr2625@cluster0.tp0nxdu.mongodb.net/?retryWrites=true&w=majority"
+
+try:
+    cluster = AsyncIOMotorClient(MONGO_URL)
+    db = cluster["elite_db"]
+    users_col = db["users"]
+    logger.info("Спроба підключення до бази даних...")
+except Exception as e:
+    logger.error(f"Критична помилка бази: {e}")
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-# СТАННИ ДЛЯ РЕЄСТРАЦІЇ ТА ОПЛАТИ
+# СТАННИ ДЛЯ АНКЕТИ ТА ОПЛАТИ
 class Registration(StatesGroup):
     name = State()
     age = State()
@@ -36,9 +45,9 @@ class Registration(StatesGroup):
 class Payment(StatesGroup):
     waiting_for_receipt = State()
 
-# --- ВЕБ-СЕРВЕР ДЛЯ ПІДТРИМКИ ЖИТТЄДІЯЛЬНОСТІ (RENDER) ---
+# --- ВЕБ-СЕРВЕР (ЩОБ RENDER НЕ ВИМИКАВ БОТА) ---
 async def handle(request):
-    return web.Response(text="EliteGirls Bot is Active and Connected to Database!")
+    return web.Response(text="EliteGirls Bot is running smoothly!")
 
 async def start_web_server():
     app = web.Application()
@@ -54,63 +63,57 @@ async def start_web_server():
 async def cmd_start(message: types.Message):
     text = (
         "💎 **ELITEGIRLS PREMIUM** 💎\n\n"
-        "Вітаємо на платформі ексклюзивного контенту!\n"
-        "Будь ласка, оберіть вашу роль для входу:"
+        "Вітаємо! Оберіть вашу роль для входу на платформу:"
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🕺 Я — Хлопець (Вхід)", callback_data="role_guy")],
         [InlineKeyboardButton(text="💃 Я — Дівчина (Реєстрація)", callback_data="reg_girl")],
         [InlineKeyboardButton(text="🆘 Тех. Підтримка", callback_data="support_info")]
     ])
-    try:
-        await message.answer_photo(photo=START_PHOTO_URL, caption=text, reply_markup=markup, parse_mode="Markdown")
-    except:
-        await message.answer(text, reply_markup=markup, parse_mode="Markdown")
+    await message.answer(text, reply_markup=markup, parse_mode="Markdown")
 
-# --- ЛОГІКА ДЛЯ ХЛОПЦЯ (ВХІД ТА ОПЛАТА) ---
+# --- ЛОГІКА ХЛОПЦЯ ТА ОПЛАТА З MINI APP ---
 @dp.callback_query(F.data == "role_guy")
 async def role_guy(callback: CallbackQuery):
     text = (
-        "🕺 **Вітаємо в Elite App!**\n\n"
-        "Для перегляду контенту та спілкування відкрийте додаток.\n"
-        "Щоб отримати преміум-доступ, поповніть баланс."
+        "🕺 **Вітаємо в додатку!**\n\n"
+        "Ви можете переглядати анкети безкоштовно. "
+        "Для оплати за функціонал використовуйте кнопку поповнення всередині Mini App."
     )
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 ВІДКРИТИ ELITE APP", web_app=WebAppInfo(url=WEB_APP_URL))],
-        [InlineKeyboardButton(text="💳 Поповнити баланс (Карта)", callback_data="pay_card")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
     ])
-    await callback.message.edit_caption(caption=text, reply_markup=markup, parse_mode="Markdown")
+    await callback.message.edit_text(text, reply_markup=markup, parse_mode="Markdown")
 
-@dp.callback_query(F.data == "pay_card")
-async def pay_card(callback: CallbackQuery, state: FSMContext):
-    text = (
-        "💳 **Оплата на карту**\n\n"
-        f"Переведіть бажану суму на карту:\n`{CARD_NUMBER}`\n\n"
-        "⚠️ **Обов'язково:** Після оплати надішліть сюди **скріншот чека**."
-    )
-    await callback.message.answer(text, parse_mode="Markdown")
-    await state.set_state(Payment.waiting_for_receipt)
-    await callback.answer()
+# Це спрацює, коли користувач натисне "Поповнити" у вашому вікні Mini App
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message, state: FSMContext):
+    if message.web_app_data.data == "payment_requested":
+        text = (
+            "💳 **ЗАПИТ НА ОПЛАТУ**\n\n"
+            f"Реквізити нашої карти:\n`{CARD_NUMBER}`\n\n"
+            "Будь ласка, перекажіть суму та **надішліть скріншот чека** нижче 👇"
+        )
+        await message.answer(text, parse_mode="Markdown")
+        await state.set_state(Payment.waiting_for_receipt)
 
 @dp.message(Payment.waiting_for_receipt, F.photo)
 async def process_receipt(message: types.Message, state: FSMContext):
-    await message.answer("✅ Чек отримано! Модератор перевірить оплату протягом 15 хвилин.")
-    
-    # Повідомлення адміну з чеком
+    await message.answer("✅ Чек отримано! Модератор перевірить оплату та оновить баланс у додатку.")
     await bot.send_photo(
-        ADMIN_ID,
-        photo=message.photo[-1].file_id,
-        caption=f"💰 **НОВИЙ ЧЕК**\nВід: @{message.from_user.username}\nID: `{message.from_user.id}`",
+        ADMIN_ID, 
+        photo=message.photo[-1].file_id, 
+        caption=f"💰 **НОВИЙ ЧЕК**\nКористувач: @{message.from_user.username}\nID: `{message.from_user.id}`",
         parse_mode="Markdown"
     )
     await state.clear()
 
-# --- ЛОГІКА ДЛЯ ДІВЧИНИ (РЕЄСТРАЦІЯ) ---
+# --- РЕЄСТРАЦІЯ ДІВЧИНИ ---
 @dp.callback_query(F.data == "reg_girl")
 async def start_reg(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Registration.name)
-    await callback.message.answer("💃 **Починаємо реєстрацію!**\nЯк тебе звати?")
+    await callback.message.answer("💃 Як тебе звати?")
     await callback.answer()
 
 @dp.message(Registration.name)
@@ -139,85 +142,48 @@ async def reg_photo(message: types.Message, state: FSMContext):
     photo_id = message.photo[-1].file_id
     user_id = message.from_user.id
     
-    # Зберігаємо в базу зі статусом "pending"
-    await users_col.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "name": data['name'], 
-            "age": data['age'], 
-            "city": data['city'], 
-            "bio": data['bio'], 
-            "status": "pending"
-        }},
-        upsert=True
-    )
-    
-    await message.answer("✅ **Анкету відправлено!**\nОчікуйте на рішення адміністратора.")
-    
-    admin_markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Схвалити", callback_data=f"approve_{user_id}")],
-        [InlineKeyboardButton(text="❌ Відхилити", callback_data=f"decline_{user_id}")]
-    ])
-    
-    caption = (
-        f"👑 **НОВА МОДЕЛЬ**\n\n"
-        f"👤 {data['name']}, {data['age']} р.\n"
-        f"📍 Місто: {data['city']}\n"
-        f"📝 Опис: {data['bio']}\n"
-        f"🔗 Юзер: @{message.from_user.username}"
-    )
-    await bot.send_photo(ADMIN_ID, photo=photo_id, caption=caption, reply_markup=admin_markup)
-    await state.clear()
+    try:
+        # ЗАПИС У БАЗУ (Виправляє "зависання")
+        await users_col.update_one(
+            {"user_id": user_id},
+            {"$set": {"name": data['name'], "age": data['age'], "city": data['city'], "bio": data['bio'], "status": "pending"}},
+            upsert=True
+        )
+        
+        await message.answer("✅ Анкета надіслана! Очікуйте схвалення від адміністратора.")
+        
+        admin_markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Схвалити", callback_data=f"approve_{user_id}")],
+            [InlineKeyboardButton(text="❌ Відхилити", callback_data=f"decline_{user_id}")]
+        ])
+        
+        caption = f"👑 **НОВА МОДЕЛЬ**\n\n👤 {data['name']}, {data['age']}\n📍 {data['city']}\n📝 {data['bio']}\n🔗 @{message.from_user.username}"
+        await bot.send_photo(ADMIN_ID, photo=photo_id, caption=caption, reply_markup=admin_markup)
+        await state.clear()
+        
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        await message.answer(f"❌ Помилка бази даних: {e}. Перевірте Network Access та пароль у MongoDB!")
 
-# --- ЛОГІКА АДМІНА: ПІДТВЕРДЖЕННЯ ТА ІНСТРУКЦІЇ ---
+# --- АДМІНКА ---
 @dp.callback_query(F.data.startswith("approve_"))
 async def admin_approve(callback: CallbackQuery):
     user_id = int(callback.data.split("_")[1])
-    
-    # Оновлюємо статус в MongoDB
     await users_col.update_one({"user_id": user_id}, {"$set": {"status": "approved"}})
-    
-    instruction = (
-        "🌟 **ВІТАЄМО! ВАС ПРИЙНЯТО ДО ELITEGIRLS**\n\n"
-        "Тепер ваш профіль доступний для користувачів.\n\n"
-        "📍 **Умови роботи:**\n"
-        "• Ви отримуєте 70% від усіх подарунків та платних чатів.\n"
-        "• Виплати на карту щотижня.\n"
-        "• Менеджер: @elitegirls_support\n\n"
-        "Напишіть менеджеру, щоб отримати доступ до робочого чату."
-    )
-    
-    await bot.send_message(user_id, instruction, parse_mode="Markdown")
-    await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ **СТАТУС: СХВАЛЕНО (База оновлена)**")
-    await callback.answer()
+    await bot.send_message(user_id, "🌟 Вітаємо! Твою анкету схвалено. Робочий кабінет у Mini App активовано.")
+    await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ **СХВАЛЕНО**")
 
-@dp.callback_query(F.data.startswith("decline_"))
-async def admin_decline(callback: CallbackQuery):
-    user_id = int(callback.data.split("_")[1])
-    await users_col.update_one({"user_id": user_id}, {"$set": {"status": "declined"}})
-    await bot.send_message(user_id, "❌ На жаль, вашу анкету було відхилено модератором.")
-    await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ **СТАТУС: ВІДХИЛЕНО**")
-    await callback.answer()
-
-# --- ДОПОМІЖНІ КНОПКИ ---
+# --- ДОПОМІЖНІ КОМАНДИ ---
 @dp.callback_query(F.data == "support_info")
-async def support_info(callback: CallbackQuery):
-    markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👨‍💻 Написати менеджеру", url=f"https://t.me/{SUPPORT_USERNAME}")],
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
-    ])
-    await callback.message.edit_caption(caption="🆘 **Підтримка**\nЗ усіх питань пишіть менеджеру.", reply_markup=markup)
+async def support(callback: CallbackQuery):
+    await callback.message.answer(f"🆘 З усіх питань пишіть: @{SUPPORT_USERNAME}")
 
 @dp.callback_query(F.data == "back_to_main")
-async def back_to_main(callback: CallbackQuery):
+async def back(callback: CallbackQuery):
     await cmd_start(callback.message); await callback.message.delete()
 
-# --- ЗАПУСК ---
 async def main():
-    await asyncio.gather(
-        start_web_server(),
-        dp.start_polling(bot, skip_updates=True)
-    )
+    await asyncio.gather(start_web_server(), dp.start_polling(bot, skip_updates=True))
 
 if __name__ == '__main__':
     asyncio.run(main())

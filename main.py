@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 # --- НАЛАШТУВАННЯ ---
 # ВСТАВ СЮДИ СВІЖИЙ ТОКЕН ВІД @BotFather
-API_TOKEN = "8703162686:AAG_uYV01qHTsm4EhB1m5MDEgeRfUyesgac" 
+API_TOKEN = "8703162686:AAHmab2F_7W54X0g30wv5MAbgtRYdlpynAg" 
 ADMIN_ID = 8561782680
 WEB_APP_URL = "https://atlet13.github.io/elite-app/"
 

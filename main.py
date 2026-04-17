@@ -1,4 +1,4 @@
-[17.04.2026 3:35] Lina✨: import asyncio
+import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo

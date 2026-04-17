@@ -6,7 +6,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 # --- НАЛАШТУВАННЯ ---
-API_TOKEN = "8703162686:AAG_uYV01qHTsm4EhB1m5MDEgeRfUyesgac"
+# ВСТАВ СЮДИ СВІЖИЙ ТОКЕН ВІД @BotFather
+API_TOKEN = "8703162686:AAG_uYV01qHTsm4EhB1m5MDEgeRfUyesgac" 
 ADMIN_ID = 8561782680
 WEB_APP_URL = "https://atlet13.github.io/elite-app/"
 
@@ -18,7 +19,6 @@ class Form(StatesGroup):
     waiting_for_name = State()
     waiting_for_photo = State()
 
-# --- СТАРТ ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -27,7 +27,6 @@ async def cmd_start(message: types.Message):
     ])
     await message.answer("Вітаємо в **ELITEGIRLS** 💎\nОберіть вашу роль:", reply_markup=markup, parse_mode="Markdown")
 
-# --- АДМІН ПАНЕЛЬ ---
 @dp.message(Command("admin"))
 async def admin_stats(message: types.Message):
     if message.from_user.id != ADMIN_ID: return
@@ -37,7 +36,6 @@ async def admin_stats(message: types.Message):
         text += f"• ID: `{m_id}` | {data['name']}\n"
     await message.answer(text, parse_mode="Markdown")
 
-# --- ГІЛКА ХЛОПЦЯ ---
 @dp.callback_query(F.data == "gender_male")
 async def process_male(callback: CallbackQuery):
     markup = InlineKeyboardMarkup(inline_keyboard=[
@@ -45,7 +43,6 @@ async def process_male(callback: CallbackQuery):
     ])
     await callback.message.edit_text("Твій доступ активовано! ✅", reply_markup=markup, parse_mode="Markdown")
 
-# --- ГІЛКА ДІВЧИНИ ---
 @dp.callback_query(F.data == "gender_female")
 async def process_female(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Form.waiting_for_name)
@@ -75,7 +72,6 @@ async def get_photo(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Заявку надіслано на модерацію!")
 
-# --- СХВАЛЕННЯ ---
 @dp.callback_query(F.data.startswith("approve_"))
 async def approve_girl(callback: CallbackQuery):
     girl_id = int(callback.data.split("_")[1])

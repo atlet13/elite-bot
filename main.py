@@ -27,7 +27,7 @@ async def cmd_start(message: types.Message):
         [InlineKeyboardButton(text="🙋‍♂️ Я хлопець", callback_data="gender_male")],
         [InlineKeyboardButton(text="🙋‍♀️ Я дівчина", callback_data="gender_female")]
     ])
-    await message.answer("Вітаємо в ELITEGIRLS 💎\nОберіть вашу роль для входу в систему:", reply_markup=markup, parse_mode="Markdown")
+    await message.answer("Вітаємо в **ELITEGIRLS** 💎\nОберіть вашу роль для входу в систему:", reply_markup=markup, parse_mode="Markdown")
 
 # --- АДМІН ПАНЕЛЬ ---
 @dp.message(Command("admin"))
@@ -36,7 +36,7 @@ async def admin_stats(message: types.Message):
     total = len(db_models)
     text = f"📊 **СТАТИСТИКА ELITEGIRLS**\n\nМоделей у базі: {total}\n"
     for m_id, data in db_models.items():
-        text += f"• ID: {m_id} | {data['name']} | 0.00 💎\n"
+        text += f"• ID: `{m_id}` | {data['name']} | 0.00 💎\n"
     await message.answer(text, parse_mode="Markdown")
 
 # --- ГІЛКА ХЛОПЦЯ ---
@@ -45,7 +45,7 @@ async def process_male(callback: types.Callback_query):
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💎 УВІЙТИ В ДОДАТОК", web_app=WebAppInfo(url=WEB_APP_URL))]
     ])
-    await callback.message.edit_text("Твій статус: Клієнт ✅\nДоступ до анкети дівчат відкритий.", reply_markup=markup, parse_mode="Markdown")
+    await callback.message.edit_text("Твій статус: **Клієнт** ✅\nДоступ до анкети дівчат відкритий.", reply_markup=markup, parse_mode="Markdown")
 
 # --- ГІЛКА ДІВЧИНИ ---
 @dp.callback_query(F.data == "gender_female")
@@ -84,18 +84,17 @@ async def approve_girl(callback: types.Callback_query):
     rules = (
         "**ВІТАЄМО В ELITEGIRLS!** 💎\n\n"
         "Вас схвалено! Ваші умови:\n"
-        "📍 Виплата: 75% від чатів/дзвінків.\n"
+        "📍 Виплата: **75%** від чатів/дзвінків.\n"
         "📍 Виплати щопонеділка на USDT/Карту.\n\n"
         "**ВЕРИФІКАЦІЯ:** Надішліть фото з папірцем:\n"
         f"`ELITEGIRLS | ID: {girl_id} | {callback.message.date.strftime('%d.%m.%Y')}`\n\n"
         "Після цього ваш профіль з'явиться у загальному FEED."
     )
     await bot.send_message(girl_id, rules, parse_mode="Markdown")
-    await callback.message.
-[17.04.2026 3:35] Lina✨: edit_caption(caption=callback.message.caption + "\n\n✅ СХВАЛЕНО")
+    await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ СХВАЛЕНО")
 
 async def main():
     await dp.start_polling(bot)
 
-if name == '__main__':
+if __name__ == '__main__':
     asyncio.run(main())

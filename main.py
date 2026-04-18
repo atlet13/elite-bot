@@ -17,7 +17,7 @@ from aiohttp import web
 load_dotenv()
 API_TOKEN = os.getenv("BOT_TOKEN")
 MONGO_URL = os.getenv("MONGO_URL")
-WEB_APP_URL = os.getenv("WEB_APP_URL", "https://atlet13.github.io/elite-app/")
+WEB_APP_URL = os.getenv("WEB_APP_URL")
 PORT = int(os.getenv("PORT", 8080))
 
 # Твої ID каналів

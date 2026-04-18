@@ -1,5 +1,4 @@
-aiogram==3.12.0
-pydantic==2.8.2
+aiogram
 motor
 dnspython
 python-dotenv
